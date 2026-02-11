@@ -1,48 +1,212 @@
-async function sendMessage() {
-    const text = userInput.value.trim();
-    if (!text || !state.apiKey) return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PeroAI - Universal Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #1e1e2e; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+        .chat-bubble { max-width: 85%; word-wrap: break-word; }
+    </style>
+</head>
+<body class="text-slate-200 h-screen flex overflow-hidden">
 
-    if (!state.currentChatId) state.currentChatId = Date.now();
+    <aside id="sidebar" class="w-64 bg-[#181825] border-r border-slate-700 flex-shrink-0 flex flex-col hidden md:flex">
+        <div class="p-4">
+            <button onclick="createNewChat()" class="w-full border border-slate-600 hover:bg-slate-700 transition py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm">
+                <i class="fas fa-plus"></i> New Chat
+            </button>
+        </div>
+        <div id="chatHistory" class="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-1"></div>
+        <div class="p-4 border-t border-slate-700">
+            <button onclick="toggleModal('settingsModal')" class="w-full flex items-center gap-3 hover:bg-slate-800 p-2 rounded-lg transition text-sm">
+                <i class="fas fa-cog"></i> <span>Settings</span>
+            </button>
+        </div>
+    </aside>
 
-    appendMessage('user', text);
-    userInput.value = '';
-    userInput.style.height = 'auto';
+    <main class="flex-1 flex flex-col relative">
+        <header class="h-14 border-b border-slate-700 flex items-center justify-between px-4 bg-[#1e1e2e]">
+            <button class="md:hidden text-xl" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <div class="font-medium text-slate-400 text-sm" id="currentModelDisplay">Loading...</div>
+            <div class="w-8"></div>
+        </header>
 
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = "flex justify-start animate-pulse";
-    loadingDiv.innerHTML = `<div class="bg-[#313244] p-4 rounded-2xl text-slate-400 text-sm">AI is thinking...</div>`;
-    chatContainer.appendChild(loadingDiv);
+        <div id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
+            <div id="emptyState" class="flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
+                <i class="fas fa-robot text-6xl"></i>
+                <p class="text-xl">How can I help you, Pero?</p>
+            </div>
+        </div>
 
-    try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${state.apiKey}`,
-                "Content-Type": "application/json",
-                // OpenRouter specific headers (highly recommended)
-                "HTTP-Referer": window.location.href, 
-                "X-Title": "Universal AI Chat"
-            },
-            body: JSON.stringify({
-                "model": state.model,
-                "messages": [{ "role": "user", "content": text }]
-            })
-        });
+        <div class="p-4 bg-[#1e1e2e]">
+            <div class="max-w-3xl mx-auto relative">
+                <textarea id="userInput" rows="1" 
+                    class="w-full bg-[#313244] text-white rounded-xl py-4 pl-4 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Message AI..."></textarea>
+                <button onclick="sendMessage()" class="absolute right-3 bottom-3.5 text-blue-400 hover:text-white transition">
+                    <i class="fas fa-paper-plane text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </main>
 
-        const data = await response.json();
-        
-        if (data.error) {
-            throw new Error(data.error.message || "API Error");
+    <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-[#1e1e2e] border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-semibold mb-4 text-white">Settings</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">OpenRouter API Key</label>
+                    <input type="password" id="apiKeyInput" class="w-full bg-[#313244] border border-slate-600 rounded-lg p-2 text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Model Name</label>
+                    <input type="text" id="modelInput" class="w-full bg-[#313244] border border-slate-600 rounded-lg p-2 text-white focus:outline-none" placeholder="google/gemini-2.0-flash-exp:free">
+                </div>
+            </div>
+            <div class="flex justify-end mt-6 gap-3">
+                <button onclick="toggleModal('settingsModal')" class="px-4 py-2 hover:bg-slate-700 rounded-lg transition">Cancel</button>
+                <button onclick="saveSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition text-white">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            apiKey: localStorage.getItem('ai_api_key') || '',
+            model: localStorage.getItem('ai_model') || 'google/gemini-2.0-flash-exp:free',
+            currentChatId: null,
+            chats: JSON.parse(localStorage.getItem('ai_history')) || []
+        };
+
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const historyList = document.getElementById('chatHistory');
+
+        function init() {
+            renderHistory();
+            updateModelDisplay();
+            if (!state.apiKey) toggleModal('settingsModal');
+            
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
         }
 
-        chatContainer.removeChild(loadingDiv);
-        const aiResponse = data.choices[0].message.content;
-        appendMessage('assistant', aiResponse);
-        saveToHistory(text, aiResponse);
+        function updateModelDisplay() {
+            document.getElementById('currentModelDisplay').innerText = `Model: ${state.model}`;
+        }
 
-    } catch (error) {
-        if (loadingDiv.parentNode) chatContainer.removeChild(loadingDiv);
-        appendMessage('assistant', `⚠️ Error: ${error.message}`);
-        console.error("Detailed Error:", error);
-    }
-}
+        function toggleModal(id) {
+            document.getElementById(id).classList.toggle('hidden');
+            document.getElementById('apiKeyInput').value = state.apiKey;
+            document.getElementById('modelInput').value = state.model;
+        }
+
+        function saveSettings() {
+            state.apiKey = document.getElementById('apiKeyInput').value.trim();
+            state.model = document.getElementById('modelInput').value.trim();
+            localStorage.setItem('ai_api_key', state.apiKey);
+            localStorage.setItem('ai_model', state.model);
+            updateModelDisplay();
+            toggleModal('settingsModal');
+        }
+
+        function createNewChat() {
+            state.currentChatId = Date.now();
+            chatContainer.innerHTML = '';
+            document.getElementById('emptyState').classList.remove('hidden');
+        }
+
+        function appendMessage(role, content) {
+            document.getElementById('emptyState').classList.add('hidden');
+            const div = document.createElement('div');
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            div.innerHTML = `<div class="chat-bubble ${role === 'user' ? 'bg-blue-600' : 'bg-[#313244]'} p-3 rounded-xl text-sm">${content}</div>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text || !state.apiKey) return;
+
+            if (!state.currentChatId) state.currentChatId = Date.now();
+            appendMessage('user', text);
+            userInput.value = '';
+
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = "flex justify-start animate-pulse";
+            loadingDiv.innerHTML = `<div class="bg-[#313244] p-3 rounded-xl text-xs text-slate-400">AI is thinking...</div>`;
+            chatContainer.appendChild(loadingDiv);
+
+            try {
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${state.apiKey}`,
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": window.location.origin,
+                        "X-Title": "PeroAI"
+                    },
+                    body: JSON.stringify({
+                        "model": state.model,
+                        "messages": [{ "role": "user", "content": text }]
+                    })
+                });
+
+                const data = await response.json();
+                if (loadingDiv.parentNode) chatContainer.removeChild(loadingDiv);
+
+                if (data.error) throw new Error(data.error.message);
+
+                const aiResponse = data.choices[0].message.content;
+                appendMessage('assistant', aiResponse);
+                saveToHistory(text, aiResponse);
+            } catch (error) {
+                if (loadingDiv.parentNode) chatContainer.removeChild(loadingDiv);
+                appendMessage('assistant', `❌ Error: ${error.message}`);
+            }
+        }
+
+        function saveToHistory(userMsg, aiMsg) {
+            const chatIndex = state.chats.findIndex(c => c.id === state.currentChatId);
+            if (chatIndex > -1) {
+                state.chats[chatIndex].messages.push({userMsg, aiMsg});
+            } else {
+                state.chats.unshift({ id: state.currentChatId, title: userMsg.substring(0, 25), messages: [{userMsg, aiMsg}] });
+            }
+            localStorage.setItem('ai_history', JSON.stringify(state.chats));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = state.chats.map(chat => `
+                <button onclick="loadChat(${chat.id})" class="w-full text-left p-2 rounded-lg hover:bg-slate-800 transition text-xs truncate text-slate-400">
+                    <i class="far fa-comment mr-2"></i> ${chat.title}
+                </button>
+            `).join('');
+        }
+
+        function loadChat(id) {
+            const chat = state.chats.find(c => c.id === id);
+            if (!chat) return;
+            state.currentChatId = id;
+            chatContainer.innerHTML = '';
+            chat.messages.forEach(m => { appendMessage('user', m.userMsg); appendMessage('assistant', m.aiMsg); });
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('hidden'); }
+
+        init();
+    </script>
+</body>
+    </html>
