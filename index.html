@@ -3,89 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PeroAI - Pro Developer Edition</title>
+    <title>PeroAI - Fixed UI & Model Select</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Fira+Code:wght@400;500&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        pre[class*="language-"] { border-radius: 12px; margin: 15px 0; font-family: 'Fira Code', monospace; font-size: 13px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-container { display: flex; flex-direction: column; overflow-y: auto; flex: 1; padding: 1.5rem; gap: 1rem; }
         .auth-hidden { display: none !important; }
-        .gen-image { border-radius: 15px; margin-top: 10px; width: 100%; max-width: 400px; border: 2px solid #3b82f6; }
-        .minecraft-glow { box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); border-color: #22c55e !important; }
+        /* Fix for scroll behavior */
+        #chatContainer::-webkit-scrollbar { width: 5px; }
+        #chatContainer::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-[#1e1e2e] text-slate-200 h-screen flex overflow-hidden">
+<body class="bg-[#0f172a] text-slate-200">
 
-    <div id="authOverlay" class="fixed inset-0 bg-[#1e1e2e] z-[100] flex items-center justify-center p-6">
-        <div class="bg-[#181825] border border-slate-700 w-full max-w-md rounded-3xl p-10 text-center shadow-2xl">
-            <h2 class="text-3xl font-bold text-white mb-6">PeroAI v5</h2>
-            <button onclick="signInWithGoogle()" class="w-full bg-white text-slate-900 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] transition">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="22">
-                Sign in with Google
+    <div id="authOverlay" class="fixed inset-0 bg-[#0f172a] z-[100] flex items-center justify-center p-6">
+        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">
+            <h2 class="text-2xl font-bold mb-6">PeroAI Login</h2>
+            <button onclick="signInWithGoogle()" class="w-full bg-white text-slate-900 font-bold py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="20">
+                Continue with Google
             </button>
         </div>
     </div>
 
-    <aside class="w-72 bg-[#11111b] border-r border-slate-800 flex flex-col hidden md:flex">
-        <div class="p-6 border-b border-slate-800 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div id="userPhoto" class="w-8 h-8 rounded-full bg-blue-500 overflow-hidden"></div>
-                <span id="userDisplay" class="text-xs font-bold text-slate-400">Guest</span>
+    <div class="flex h-full w-full">
+        <aside class="w-64 bg-[#1e293b] border-r border-slate-800 hidden md:flex flex-col">
+            <div class="p-4 border-b border-slate-800 flex items-center gap-2">
+                <div id="userPhoto" class="w-8 h-8 rounded-full bg-blue-600 overflow-hidden"></div>
+                <span id="userDisplay" class="text-xs font-bold truncate">User</span>
             </div>
-            <button onclick="logout()" class="text-slate-600 hover:text-red-400"><i class="fas fa-power-off"></i></button>
-        </div>
-        <div class="p-4"><button onclick="createNewChat()" class="w-full bg-blue-600 py-3 rounded-xl font-bold">+ New Project</button></div>
-        <div id="chatHistory" class="flex-1 overflow-y-auto px-4 space-y-2"></div>
-        <div class="p-4 border-t border-slate-800">
-            <div class="flex items-center justify-between text-xs mb-4">
-                <span>Minecraft Mode</span>
-                <input type="checkbox" id="mcToggle" class="w-4 h-4 accent-green-500">
+            <div class="p-4 flex-1 overflow-y-auto" id="chatHistory"></div>
+            <div class="p-4 border-t border-slate-800">
+                <button onclick="toggleModal('settingsModal')" class="text-xs text-slate-400 hover:text-white flex items-center gap-2">
+                    <i class="fas fa-cog"></i> AI Settings
+                </button>
             </div>
-            <button onclick="toggleModal('settingsModal')" class="w-full text-left text-xs text-slate-500 hover:text-white"><i class="fas fa-cog mr-2"></i> Settings</button>
-        </div>
-    </aside>
+        </aside>
 
-    <main class="flex-1 flex flex-col bg-[#1e1e2e]">
-        <header class="h-16 border-b border-slate-800/50 flex items-center px-8 justify-between">
-            <span class="text-xs font-mono text-blue-400" id="statusLabel">SYSTEM READY</span>
-            <span class="text-xs text-slate-500" id="modelDisplay">Gemini 2.0 Flash</span>
-        </header>
+        <main class="flex-1 flex flex-col min-w-0">
+            <header class="h-14 border-b border-slate-800 flex items-center px-6 justify-between bg-[#0f172a]/80 backdrop-blur-md">
+                <span class="text-xs font-semibold text-blue-400" id="activeModelLabel">Current Model: Loading...</span>
+                <button onclick="logout()" class="text-xs text-red-400 hover:underline">Logout</button>
+            </header>
 
-        <div id="chatContainer" class="flex-1 overflow-y-auto p-6 md:px-20 space-y-8 scroll-smooth"></div>
+            <div id="chatContainer" class="chat-container">
+                </div>
 
-        <div class="p-6">
-            <div class="max-w-4xl mx-auto relative">
-                <textarea id="userInput" rows="1" class="w-full bg-[#181825] border border-slate-700 rounded-2xl py-5 pl-6 pr-32 outline-none focus:ring-2 focus:ring-blue-500 text-white" placeholder="Ask for a Minecraft plugin or generate an image..."></textarea>
-                <div class="absolute right-3 bottom-3 flex gap-2">
-                    <button onclick="triggerImageGen()" class="w-10 h-10 text-slate-400 hover:text-purple-400 transition" title="Generate Image"><i class="fas fa-magic"></i></button>
-                    <button onclick="startVoice()" class="w-10 h-10 text-slate-400 hover:text-blue-400 transition"><i class="fas fa-microphone" id="micIcon"></i></button>
-                    <button onclick="sendMessage()" class="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg"><i class="fas fa-paper-plane"></i></button>
+            <div class="p-4 bg-[#0f172a]">
+                <div class="max-w-3xl mx-auto relative flex items-center gap-2 bg-[#1e293b] rounded-2xl p-2 border border-slate-700">
+                    <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none outline-none p-3 text-sm text-white resize-none" placeholder="Type a message..."></textarea>
+                    <button onclick="sendMessage()" class="bg-blue-600 p-3 rounded-xl text-white hover:bg-blue-500 transition">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
-    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-[110] flex items-center justify-center p-4">
-        <div class="bg-[#181825] border border-slate-700 w-full max-w-md rounded-3xl p-8">
-            <h2 class="text-xl font-bold mb-6">Dev Settings</h2>
-            <input type="password" id="apiKeyInput" class="w-full bg-[#11111b] border border-slate-700 rounded-xl p-3 mb-4" placeholder="OpenRouter API Key">
-            <div class="flex justify-end gap-4 mt-6">
-                <button onclick="toggleModal('settingsModal')" class="text-slate-500">Cancel</button>
-                <button onclick="saveSettings()" class="bg-blue-600 px-6 py-2 rounded-xl font-bold">Save</button>
+    <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[110] flex items-center justify-center">
+        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-sm rounded-3xl p-6">
+            <h3 class="font-bold mb-4">Configuration</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-slate-400 uppercase font-bold">OpenRouter API Key</label>
+                    <input type="password" id="apiKeyInput" class="w-full bg-[#0f172a] border border-slate-700 rounded-lg p-2 text-sm mt-1 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-400 uppercase font-bold">Model ID</label>
+                    <input type="text" id="modelInput" class="w-full bg-[#0f172a] border border-slate-700 rounded-lg p-2 text-sm mt-1 outline-none" placeholder="e.g. google/gemini-2.0-flash-exp:free">
+                    <p class="text-[9px] text-slate-500 mt-1">Visit OpenRouter.ai for model IDs</p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="toggleModal('settingsModal')" class="text-xs">Close</button>
+                <button onclick="saveSettings()" class="bg-blue-600 px-4 py-2 rounded-lg text-xs font-bold">Save Changes</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- FIREBASE (YOUR KEYS) ---
+        // FIREBASE SETUP
         const firebaseConfig = {
             apiKey: "AIzaSyBqG8rYJZ4xVwR5TrOnzdmlD-eqH8J7TTU",
             authDomain: "peroai-c9000.firebaseapp.com",
@@ -98,21 +100,18 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        let currentUser = null;
         let state = {
-            apiKey: localStorage.getItem('pero_key') || '',
-            model: 'google/gemini-2.0-flash-exp:free',
-            currentChatId: null
+            key: localStorage.getItem('pero_key') || '',
+            model: localStorage.getItem('pero_model') || 'google/gemini-2.0-flash-exp:free'
         };
 
-        // --- AUTH ---
+        document.getElementById('activeModelLabel').innerText = `Model: ${state.model}`;
+
         auth.onAuthStateChanged(user => {
             if (user) {
-                currentUser = user;
                 document.getElementById('authOverlay').classList.add('auth-hidden');
                 document.getElementById('userDisplay').innerText = user.displayName;
                 document.getElementById('userPhoto').innerHTML = `<img src="${user.photoURL}">`;
-                loadChats();
             } else {
                 document.getElementById('authOverlay').classList.remove('auth-hidden');
             }
@@ -120,127 +119,43 @@
 
         function signInWithGoogle() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
         function logout() { auth.signOut(); location.reload(); }
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
 
-        // --- CORE AI LOGIC ---
-        async function sendMessage(isImageRequest = false) {
+        function saveSettings() {
+            state.key = document.getElementById('apiKeyInput').value || state.key;
+            state.model = document.getElementById('modelInput').value || state.model;
+            localStorage.setItem('pero_key', state.key);
+            localStorage.setItem('pero_model', state.model);
+            document.getElementById('activeModelLabel').innerText = `Model: ${state.model}`;
+            toggleModal('settingsModal');
+        }
+
+        async function sendMessage() {
             const input = document.getElementById('userInput');
-            let text = input.value.trim();
-            if (!text || !state.apiKey) return;
+            const text = input.value.trim();
+            if(!text || !state.key) return;
 
-            if (!state.currentChatId) state.currentChatId = Date.now();
             appendMsg('user', text);
             input.value = '';
 
-            let systemPrompt = "You are a helpful AI assistant.";
-            if (document.getElementById('mcToggle').checked) {
-                systemPrompt = "You are a professional Minecraft Plugin Developer. Provide high-quality Java code for Spigot/Paper API. Always include the plugin.yml structure.";
-            }
-
-            // Handle Image Request Modalities
-            const body = {
-                "model": state.model,
-                "messages": [
-                    { "role": "system", "content": systemPrompt },
-                    { "role": "user", "content": text }
-                ]
-            };
-
-            if (isImageRequest || text.toLowerCase().includes("generate an image")) {
-                body.modalities = ["image", "text"];
-            }
-
             try {
-                document.getElementById('statusLabel').innerText = "AI IS THINKING...";
                 const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${state.apiKey}`, "Content-Type": "application/json" },
-                    body: JSON.stringify(body)
+                    headers: { "Authorization": `Bearer ${state.key}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ "model": state.model, "messages": [{ "role": "user", "content": text }] })
                 });
                 const data = await res.json();
-                const message = data.choices[0].message;
-                
-                // Display Text Response
-                if (message.content) appendMsg('assistant', message.content);
-                
-                // Display Image Response (OpenRouter specific)
-                if (message.images) {
-                    message.images.forEach(img => {
-                        const imgTag = `<img src="${img.url}" class="gen-image" onload="window.scrollTo(0,document.body.scrollHeight)">`;
-                        appendMsg('assistant', imgTag, true);
-                    });
-                }
-
-                saveChat(text, message.content || "[Image Generated]");
-                document.getElementById('statusLabel').innerText = "SYSTEM READY";
-            } catch (e) { alert("Error: Check your API Key in Settings."); }
+                appendMsg('assistant', data.choices[0].message.content);
+            } catch (e) { alert("Error connecting to OpenRouter. Check API Key."); }
         }
 
-        function appendMsg(role, content, isRawHtml = false) {
+        function appendMsg(role, content) {
             const container = document.getElementById('chatContainer');
             const div = document.createElement('div');
             div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
-            
-            let htmlContent = content;
-            if (!isRawHtml && role === 'assistant') {
-                // Basic Markdown Code Block Detection
-                htmlContent = content.replace(/```java([\s\S]*?)```/g, '<pre class="language-java"><code>$1</code></pre>');
-                htmlContent = htmlContent.replace(/```([\s\S]*?)```/g, '<pre class="language-javascript"><code>$1</code></pre>');
-            }
-
-            div.innerHTML = `<div class="max-w-[85%] p-4 rounded-2xl text-sm ${role === 'user' ? 'bg-blue-600' : 'bg-[#181825] border border-slate-800'}">${htmlContent}</div>`;
+            div.innerHTML = `<div class="max-w-[80%] p-3 rounded-2xl text-sm ${role === 'user' ? 'bg-blue-600' : 'bg-slate-800'}">${content}</div>`;
             container.appendChild(div);
-            Prism.highlightAll();
             container.scrollTop = container.scrollHeight;
-        }
-
-        function triggerImageGen() {
-            const input = document.getElementById('userInput');
-            if (!input.value) input.value = "Generate a beautiful landscape";
-            sendMessage(true);
-        }
-
-        async function saveChat(u, a) {
-            const ref = db.collection('users').doc(currentUser.uid).collection('chats').doc(state.currentChatId.toString());
-            const snap = await ref.get();
-            if (snap.exists) {
-                await ref.update({ messages: firebase.firestore.FieldValue.arrayUnion({u, a}) });
-            } else {
-                await ref.set({ id: state.currentChatId, title: u.substring(0, 20), timestamp: Date.now(), messages: [{u, a}] });
-            }
-            loadChats();
-        }
-
-        async function loadChats() {
-            const snap = await db.collection('users').doc(currentUser.uid).collection('chats').orderBy('timestamp', 'desc').get();
-            const list = document.getElementById('chatHistory');
-            list.innerHTML = '';
-            snap.forEach(doc => {
-                const chat = doc.data();
-                const div = document.createElement('div');
-                div.className = "p-3 rounded-xl hover:bg-slate-800 cursor-pointer text-xs text-slate-500 truncate";
-                div.innerHTML = `<i class="fas fa-code mr-2"></i> ${chat.title}`;
-                div.onclick = () => {
-                    state.currentChatId = chat.id;
-                    document.getElementById('chatContainer').innerHTML = '';
-                    chat.messages.forEach(m => { appendMsg('user', m.u); appendMsg('assistant', m.a); });
-                };
-                list.appendChild(div);
-            });
-        }
-
-        function createNewChat() { state.currentChatId = Date.now(); document.getElementById('chatContainer').innerHTML = ''; }
-        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
-        function saveSettings() {
-            state.apiKey = document.getElementById('apiKeyInput').value;
-            localStorage.setItem('pero_key', state.apiKey);
-            toggleModal('settingsModal');
-        }
-        function startVoice() {
-            const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            rec.onstart = () => document.getElementById('micIcon').className = "fas fa-circle text-red-500 animate-pulse";
-            rec.onresult = (e) => document.getElementById('userInput').value = e.results[0][0].transcript;
-            rec.onend = () => document.getElementById('micIcon').className = "fas fa-microphone";
-            rec.start();
         }
     </script>
 </body>
