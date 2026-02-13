@@ -3,91 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PeroAI - Fixed UI & Model Select</title>
+    <title>PeroAI v7 - Full Suite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-        body { font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .chat-container { display: flex; flex-direction: column; overflow-y: auto; flex: 1; padding: 1.5rem; gap: 1rem; }
-        .auth-hidden { display: none !important; }
-        /* Fix for scroll behavior */
-        #chatContainer::-webkit-scrollbar { width: 5px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Fira+Code&display=swap');
+        body { font-family: 'Inter', sans-serif; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; background: #0f172a; }
+        #chatContainer::-webkit-scrollbar { width: 4px; }
         #chatContainer::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .gen-image { border-radius: 12px; margin-top: 10px; border: 2px solid #3b82f6; max-width: 100%; height: auto; }
+        .auth-hidden { display: none !important; }
     </style>
 </head>
-<body class="bg-[#0f172a] text-slate-200">
+<body class="text-slate-200">
 
     <div id="authOverlay" class="fixed inset-0 bg-[#0f172a] z-[100] flex items-center justify-center p-6">
-        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-md rounded-3xl p-8 text-center shadow-2xl">
-            <h2 class="text-2xl font-bold mb-6">PeroAI Login</h2>
-            <button onclick="signInWithGoogle()" class="w-full bg-white text-slate-900 font-bold py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="20">
-                Continue with Google
+        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-md rounded-3xl p-10 text-center shadow-2xl">
+            <h2 class="text-3xl font-bold mb-6">PeroAI</h2>
+            <button onclick="signInWithGoogle()" class="w-full bg-white text-slate-900 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:scale-105 transition">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="22"> Continue with Google
             </button>
         </div>
     </div>
 
-    <div class="flex h-full w-full">
-        <aside class="w-64 bg-[#1e293b] border-r border-slate-800 hidden md:flex flex-col">
-            <div class="p-4 border-b border-slate-800 flex items-center gap-2">
-                <div id="userPhoto" class="w-8 h-8 rounded-full bg-blue-600 overflow-hidden"></div>
-                <span id="userDisplay" class="text-xs font-bold truncate">User</span>
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-72 bg-[#1e293b] border-r border-slate-800 hidden md:flex flex-col">
+            <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+                <div id="userPhoto" class="w-10 h-10 rounded-full bg-blue-500 overflow-hidden"></div>
+                <div class="truncate"><p id="userDisplay" class="text-sm font-bold">Guest</p><p class="text-[10px] text-slate-500">Pro Member</p></div>
             </div>
             <div class="p-4 flex-1 overflow-y-auto" id="chatHistory"></div>
-            <div class="p-4 border-t border-slate-800">
-                <button onclick="toggleModal('settingsModal')" class="text-xs text-slate-400 hover:text-white flex items-center gap-2">
-                    <i class="fas fa-cog"></i> AI Settings
-                </button>
+            <div class="p-6 border-t border-slate-800 space-y-4">
+                <div class="flex items-center justify-between text-xs">
+                    <span>Minecraft Dev Mode</span>
+                    <input type="checkbox" id="mcToggle" class="accent-green-500">
+                </div>
+                <button onclick="toggleModal('settingsModal')" class="w-full text-left text-xs text-slate-400 hover:text-white"><i class="fas fa-cog mr-2"></i> System Settings</button>
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col min-w-0">
-            <header class="h-14 border-b border-slate-800 flex items-center px-6 justify-between bg-[#0f172a]/80 backdrop-blur-md">
-                <span class="text-xs font-semibold text-blue-400" id="activeModelLabel">Current Model: Loading...</span>
-                <button onclick="logout()" class="text-xs text-red-400 hover:underline">Logout</button>
+        <main class="flex-1 flex flex-col bg-[#0f172a] relative">
+            <header class="h-16 border-b border-slate-800/50 flex items-center px-8 justify-between bg-[#0f172a]/80 backdrop-blur-md z-10">
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase tracking-widest text-blue-400 font-bold" id="statusLabel">System Online</span>
+                    <span class="text-xs text-slate-500" id="modelLabel">Model: Gemini 2.0 Flash</span>
+                </div>
+                <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-400">Sign Out</button>
             </header>
 
-            <div id="chatContainer" class="chat-container">
-                </div>
+            <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-6"></div>
 
-            <div class="p-4 bg-[#0f172a]">
-                <div class="max-w-3xl mx-auto relative flex items-center gap-2 bg-[#1e293b] rounded-2xl p-2 border border-slate-700">
-                    <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none outline-none p-3 text-sm text-white resize-none" placeholder="Type a message..."></textarea>
-                    <button onclick="sendMessage()" class="bg-blue-600 p-3 rounded-xl text-white hover:bg-blue-500 transition">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+            <div class="p-4 md:p-6">
+                <div class="max-w-4xl mx-auto bg-[#1e293b] border border-slate-700 rounded-2xl p-2 shadow-xl">
+                    <div class="flex items-end gap-2 px-2">
+                        <button onclick="triggerImageGen()" class="p-3 text-slate-400 hover:text-purple-400" title="Generate Image"><i class="fas fa-magic"></i></button>
+                        <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none outline-none py-3 text-sm text-white resize-none" placeholder="Type, speak, or generate..."></textarea>
+                        <button onclick="startVoice()" id="micBtn" class="p-3 text-slate-400 hover:text-red-400"><i class="fas fa-microphone"></i></button>
+                        <button onclick="sendMessage()" class="bg-blue-600 h-10 w-10 rounded-xl text-white hover:bg-blue-500 transition"><i class="fas fa-paper-plane"></i></button>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[110] flex items-center justify-center">
-        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-sm rounded-3xl p-6">
-            <h3 class="font-bold mb-4">Configuration</h3>
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-[110] flex items-center justify-center p-4">
+        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-sm rounded-3xl p-8">
+            <h3 class="text-lg font-bold mb-6">Configuration</h3>
             <div class="space-y-4">
                 <div>
-                    <label class="text-[10px] text-slate-400 uppercase font-bold">OpenRouter API Key</label>
-                    <input type="password" id="apiKeyInput" class="w-full bg-[#0f172a] border border-slate-700 rounded-lg p-2 text-sm mt-1 outline-none">
+                    <label class="text-[10px] text-slate-400 font-bold uppercase">OpenRouter API Key</label>
+                    <input type="password" id="apiKeyInput" class="w-full bg-[#0f172a] border border-slate-800 rounded-xl p-3 text-sm mt-1 outline-none focus:border-blue-500">
                 </div>
                 <div>
-                    <label class="text-[10px] text-slate-400 uppercase font-bold">Model ID</label>
-                    <input type="text" id="modelInput" class="w-full bg-[#0f172a] border border-slate-700 rounded-lg p-2 text-sm mt-1 outline-none" placeholder="e.g. google/gemini-2.0-flash-exp:free">
-                    <p class="text-[9px] text-slate-500 mt-1">Visit OpenRouter.ai for model IDs</p>
+                    <label class="text-[10px] text-slate-400 font-bold uppercase">Active Model ID</label>
+                    <input type="text" id="modelInput" class="w-full bg-[#0f172a] border border-slate-800 rounded-xl p-3 text-sm mt-1 outline-none" placeholder="google/gemini-2.0-flash-exp:free">
                 </div>
             </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button onclick="toggleModal('settingsModal')" class="text-xs">Close</button>
-                <button onclick="saveSettings()" class="bg-blue-600 px-4 py-2 rounded-lg text-xs font-bold">Save Changes</button>
+            <div class="mt-8 flex justify-end gap-4">
+                <button onclick="toggleModal('settingsModal')" class="text-sm text-slate-500">Cancel</button>
+                <button onclick="saveSettings()" class="bg-blue-600 px-6 py-2 rounded-xl text-sm font-bold">Save Changes</button>
             </div>
         </div>
     </div>
 
     <script>
-        // FIREBASE SETUP
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyBqG8rYJZ4xVwR5TrOnzdmlD-eqH8J7TTU",
             authDomain: "peroai-c9000.firebaseapp.com",
@@ -105,13 +108,13 @@
             model: localStorage.getItem('pero_model') || 'google/gemini-2.0-flash-exp:free'
         };
 
-        document.getElementById('activeModelLabel').innerText = `Model: ${state.model}`;
-
+        // --- AUTH LOGIC ---
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('authOverlay').classList.add('auth-hidden');
                 document.getElementById('userDisplay').innerText = user.displayName;
                 document.getElementById('userPhoto').innerHTML = `<img src="${user.photoURL}">`;
+                document.getElementById('modelLabel').innerText = `Model: ${state.model}`;
             } else {
                 document.getElementById('authOverlay').classList.remove('auth-hidden');
             }
@@ -126,37 +129,93 @@
             state.model = document.getElementById('modelInput').value || state.model;
             localStorage.setItem('pero_key', state.key);
             localStorage.setItem('pero_model', state.model);
-            document.getElementById('activeModelLabel').innerText = `Model: ${state.model}`;
+            document.getElementById('modelLabel').innerText = `Model: ${state.model}`;
             toggleModal('settingsModal');
         }
 
-        async function sendMessage() {
+        // --- VOICE SYSTEM ---
+        function startVoice() {
+            const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!Speech) return alert("Voice not supported in this browser.");
+            const rec = new Speech();
+            rec.onstart = () => document.getElementById('micBtn').classList.add('text-red-500', 'animate-pulse');
+            rec.onresult = (e) => document.getElementById('userInput').value = e.results[0][0].transcript;
+            rec.onend = () => document.getElementById('micBtn').classList.remove('text-red-500', 'animate-pulse');
+            rec.start();
+        }
+
+        // --- CORE AI & IMAGE GEN ---
+        async function sendMessage(forceImage = false) {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
-            if(!text || !state.key) return;
+            if (!text || !state.key) return;
 
             appendMsg('user', text);
             input.value = '';
+            document.getElementById('statusLabel').innerText = "AI THINKING...";
+
+            let systemPrompt = "You are PeroAI, a helpful assistant.";
+            if (document.getElementById('mcToggle').checked) {
+                systemPrompt = "You are a Minecraft Plugin Developer. Provide Java code for Spigot API.";
+            }
+
+            const payload = {
+                model: state.model,
+                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }]
+            };
+
+            // Enable Image Output if requested
+            if (forceImage || text.toLowerCase().includes("generate image")) {
+                payload.modalities = ["text", "image"];
+            }
 
             try {
                 const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
                     headers: { "Authorization": `Bearer ${state.key}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ "model": state.model, "messages": [{ "role": "user", "content": text }] })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
-                appendMsg('assistant', data.choices[0].message.content);
-            } catch (e) { alert("Error connecting to OpenRouter. Check API Key."); }
+                const msg = data.choices[0].message;
+
+                if (msg.content) appendMsg('assistant', msg.content);
+                
+                // Show Image if returned
+                if (msg.images) {
+                    msg.images.forEach(img => {
+                        const imgHtml = `<img src="${img.url}" class="gen-image">`;
+                        appendMsg('assistant', imgHtml, true);
+                    });
+                }
+
+                document.getElementById('statusLabel').innerText = "SYSTEM ONLINE";
+            } catch (e) {
+                alert("Error. Please check your API Key in Settings.");
+                document.getElementById('statusLabel').innerText = "ERROR";
+            }
         }
 
-        function appendMsg(role, content) {
+        function triggerImageGen() {
+            const input = document.getElementById('userInput');
+            if (!input.value) input.value = "A futuristic robot city";
+            sendMessage(true);
+        }
+
+        function appendMsg(role, content, isHtml = false) {
             const container = document.getElementById('chatContainer');
             const div = document.createElement('div');
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
-            div.innerHTML = `<div class="max-w-[80%] p-3 rounded-2xl text-sm ${role === 'user' ? 'bg-blue-600' : 'bg-slate-800'}">${content}</div>`;
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} fade-in`;
+            
+            let displayContent = content;
+            if (!isHtml && role === 'assistant') {
+                // Simple code block formatting
+                displayContent = content.replace(/```([\s\S]*?)```/g, '<pre class="bg-black/40 p-3 rounded-lg my-2 font-mono text-xs overflow-x-auto">$1</pre>');
+            }
+
+            div.innerHTML = `<div class="max-w-[85%] p-4 rounded-2xl text-sm ${role === 'user' ? 'bg-blue-600 shadow-blue-500/20' : 'bg-[#1e293b] border border-slate-700 shadow-black/20'} shadow-lg">${displayContent}</div>`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
     </script>
 </body>
-    </html>
+                        </html>
