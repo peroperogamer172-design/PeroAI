@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PeroAI v7 - Full Suite</title>
+    <title>PeroAI v9-Beta - Master Architect</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -12,85 +12,142 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Fira+Code&display=swap');
         body { font-family: 'Inter', sans-serif; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; background: #0f172a; }
-        #chatContainer::-webkit-scrollbar { width: 4px; }
-        #chatContainer::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .gen-image { border-radius: 12px; margin-top: 10px; border: 2px solid #3b82f6; max-width: 100%; height: auto; }
+        #chatContainer { scroll-behavior: smooth; }
+        #chatContainer::-webkit-scrollbar, #adminLogs::-webkit-scrollbar { width: 5px; }
+        #chatContainer::-webkit-scrollbar-thumb, #adminLogs::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .gen-image { border-radius: 12px; margin-top: 10px; border: 2px solid #3b82f6; width: 100%; height: auto; transition: transform 0.3s; }
+        .gen-image:hover { transform: scale(1.02); }
         .auth-hidden { display: none !important; }
+        .download-btn { background: #22c55e; color: white; padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s; }
+        .download-btn:hover { background: #16a34a; transform: translateY(-1px); }
+        .chat-item:hover .delete-btn { display: block; }
     </style>
 </head>
 <body class="text-slate-200">
 
     <div id="authOverlay" class="fixed inset-0 bg-[#0f172a] z-[100] flex items-center justify-center p-6">
-        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-md rounded-3xl p-10 text-center shadow-2xl">
-            <h2 class="text-3xl font-bold mb-6">PeroAI</h2>
-            <button onclick="signInWithGoogle()" class="w-full bg-white text-slate-900 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:scale-105 transition">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="22"> Continue with Google
-            </button>
+        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-md rounded-3xl p-10 text-center shadow-2xl relative overflow-hidden">
+            <h2 class="text-3xl font-bold mb-2">PeroAI v9</h2>
+            <p class="text-slate-500 mb-8 text-sm">Professional AI Dev Environment</p>
+            
+            <div id="userLoginSection">
+                <button onclick="signInWithGoogle()" class="w-full bg-white text-slate-900 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-100 transition shadow-lg mb-4">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="22"> Continue with Google
+                </button>
+                <button onclick="toggleAuthMode()" class="text-xs text-slate-500 hover:text-blue-400 mt-4">Admin Login</button>
+            </div>
+
+            <div id="adminLoginSection" class="hidden space-y-4">
+                <input type="email" id="adminEmail" placeholder="Admin Email" class="w-full bg-[#0f172a] border border-slate-700 rounded-xl p-3 text-white outline-none">
+                <input type="password" id="adminPass" placeholder="Admin Password" class="w-full bg-[#0f172a] border border-slate-700 rounded-xl p-3 text-white outline-none">
+                <button onclick="adminLogin()" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-500 transition shadow-lg shadow-red-500/20">Access Admin Panel</button>
+                <button onclick="toggleAuthMode()" class="text-xs text-slate-500 hover:text-blue-400 mt-2">Back to User Login</button>
+            </div>
+            <p id="authError" class="text-red-400 text-xs mt-4 hidden"></p>
         </div>
     </div>
 
     <div class="flex flex-1 overflow-hidden">
-        <aside class="w-72 bg-[#1e293b] border-r border-slate-800 hidden md:flex flex-col">
+        <aside class="w-72 bg-[#1e293b] border-r border-slate-800 hidden lg:flex flex-col">
             <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-                <div id="userPhoto" class="w-10 h-10 rounded-full bg-blue-500 overflow-hidden"></div>
-                <div class="truncate"><p id="userDisplay" class="text-sm font-bold">Guest</p><p class="text-[10px] text-slate-500">Pro Member</p></div>
-            </div>
-            <div class="p-4 flex-1 overflow-y-auto" id="chatHistory"></div>
-            <div class="p-6 border-t border-slate-800 space-y-4">
-                <div class="flex items-center justify-between text-xs">
-                    <span>Minecraft Dev Mode</span>
-                    <input type="checkbox" id="mcToggle" class="accent-green-500">
+                <div id="userPhoto" class="w-10 h-10 rounded-full bg-blue-500 overflow-hidden ring-2 ring-blue-500/20 flex items-center justify-center font-bold"></div>
+                <div class="truncate flex-1">
+                    <p id="userDisplay" class="text-sm font-bold truncate">Guest</p>
+                    <p id="roleBadge" class="text-[10px] text-green-400 font-bold uppercase tracking-widest">User</p>
                 </div>
-                <button onclick="toggleModal('settingsModal')" class="w-full text-left text-xs text-slate-400 hover:text-white"><i class="fas fa-cog mr-2"></i> System Settings</button>
+            </div>
+            
+            <div class="p-4">
+                <button onclick="createNewChat()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20 transition">
+                    <i class="fas fa-plus mr-2"></i> New Project
+                </button>
+            </div>
+
+            <div class="p-2 flex-1 overflow-y-auto space-y-1" id="chatHistory"></div>
+            
+            <div class="p-6 border-t border-slate-800 space-y-4 bg-[#111827]">
+                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700">
+                    <span class="text-xs font-semibold">Minecraft Mode</span>
+                    <input type="checkbox" id="mcToggle" class="w-4 h-4 accent-green-500 cursor-pointer">
+                </div>
+                <button onclick="toggleModal('settingsModal')" class="w-full text-left text-xs text-slate-400 hover:text-white transition flex items-center px-2"><i class="fas fa-cog mr-3"></i> API Settings</button>
+                <button id="adminBtn" onclick="toggleModal('adminModal')" class="hidden w-full text-left text-xs text-red-400 hover:text-red-300 transition flex items-center px-2"><i class="fas fa-shield-alt mr-3"></i> Admin Dashboard</button>
             </div>
         </aside>
 
         <main class="flex-1 flex flex-col bg-[#0f172a] relative">
             <header class="h-16 border-b border-slate-800/50 flex items-center px-8 justify-between bg-[#0f172a]/80 backdrop-blur-md z-10">
                 <div class="flex flex-col">
-                    <span class="text-[10px] uppercase tracking-widest text-blue-400 font-bold" id="statusLabel">System Online</span>
-                    <span class="text-xs text-slate-500" id="modelLabel">Model: Gemini 2.0 Flash</span>
+                    <span class="text-[10px] uppercase tracking-widest text-blue-400 font-bold" id="statusLabel">SYSTEM READY</span>
+                    <span class="text-xs text-slate-500" id="modelLabel">Loading Model...</span>
                 </div>
-                <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-400">Sign Out</button>
+                <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-400 font-semibold"><i class="fas fa-sign-out-alt mr-1"></i> Sign Out</button>
             </header>
 
-            <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-6"></div>
+            <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-8 pb-32 flex flex-col"></div>
 
-            <div class="p-4 md:p-6">
-                <div class="max-w-4xl mx-auto bg-[#1e293b] border border-slate-700 rounded-2xl p-2 shadow-xl">
+            <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0f172a] via-[#0f172a] to-transparent">
+                <div class="max-w-4xl mx-auto bg-[#1e293b]/90 backdrop-blur-xl border border-slate-700 rounded-2xl p-2 shadow-2xl">
                     <div class="flex items-end gap-2 px-2">
-                        <button onclick="triggerImageGen()" class="p-3 text-slate-400 hover:text-purple-400" title="Generate Image"><i class="fas fa-magic"></i></button>
-                        <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none outline-none py-3 text-sm text-white resize-none" placeholder="Type, speak, or generate..."></textarea>
-                        <button onclick="startVoice()" id="micBtn" class="p-3 text-slate-400 hover:text-red-400"><i class="fas fa-microphone"></i></button>
-                        <button onclick="sendMessage()" class="bg-blue-600 h-10 w-10 rounded-xl text-white hover:bg-blue-500 transition"><i class="fas fa-paper-plane"></i></button>
+                        <button onclick="triggerImageGen()" class="p-3 text-slate-400 hover:text-purple-400 transition" title="Generate Image"><i class="fas fa-wand-magic-sparkles"></i></button>
+                        <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none outline-none py-3 text-sm text-white resize-none" placeholder="Write a plugin or ask anything..."></textarea>
+                        <button onclick="startVoice()" id="micBtn" class="p-3 text-slate-400 hover:text-red-400 transition"><i class="fas fa-microphone"></i></button>
+                        <button onclick="sendMessage()" class="bg-blue-600 h-10 w-10 rounded-xl text-white hover:bg-blue-500 transition shadow-lg shadow-blue-500/20"><i class="fas fa-paper-plane"></i></button>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-[110] flex items-center justify-center p-4">
-        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-sm rounded-3xl p-8">
-            <h3 class="text-lg font-bold mb-6">Configuration</h3>
+    <div id="adminModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-[120] flex items-center justify-center p-4">
+        <div class="bg-[#1e293b] border border-red-900/50 w-full max-w-3xl h-[80vh] rounded-3xl p-8 shadow-2xl flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-white"><i class="fas fa-server text-red-500 mr-2"></i> System Admin</h3>
+                <button onclick="toggleModal('adminModal')" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-[#0f172a] p-4 rounded-xl border border-slate-700 text-center">
+                    <p class="text-[10px] text-slate-400 uppercase font-bold">Total Logs</p>
+                    <p class="text-2xl font-bold text-blue-400" id="statLogs">0</p>
+                </div>
+                <div class="bg-[#0f172a] p-4 rounded-xl border border-slate-700 text-center">
+                    <p class="text-[10px] text-slate-400 uppercase font-bold">Errors Caught</p>
+                    <p class="text-2xl font-bold text-red-400" id="statErrors">0</p>
+                </div>
+                <div class="bg-[#0f172a] p-4 rounded-xl border border-slate-700 text-center flex items-center justify-center">
+                    <button onclick="fetchAdminLogs()" class="text-sm bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg font-bold w-full"><i class="fas fa-sync-alt mr-2"></i>Refresh</button>
+                </div>
+            </div>
+
+            <h4 class="text-xs text-slate-400 uppercase font-bold mb-2">System Logs</h4>
+            <div id="adminLogs" class="flex-1 bg-[#0f172a] border border-slate-700 rounded-xl p-4 overflow-y-auto font-mono text-xs space-y-2">
+                </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-[110] flex items-center justify-center p-4">
+        <div class="bg-[#1e293b] border border-slate-700 w-full max-w-sm rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-xl font-bold mb-6">API Config</h3>
             <div class="space-y-4">
                 <div>
-                    <label class="text-[10px] text-slate-400 font-bold uppercase">OpenRouter API Key</label>
-                    <input type="password" id="apiKeyInput" class="w-full bg-[#0f172a] border border-slate-800 rounded-xl p-3 text-sm mt-1 outline-none focus:border-blue-500">
+                    <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">OpenRouter API Key</label>
+                    <input type="password" id="apiKeyInput" class="w-full bg-[#0f172a] border border-slate-800 rounded-xl p-3 text-sm mt-2 outline-none focus:border-blue-500">
                 </div>
                 <div>
-                    <label class="text-[10px] text-slate-400 font-bold uppercase">Active Model ID</label>
-                    <input type="text" id="modelInput" class="w-full bg-[#0f172a] border border-slate-800 rounded-xl p-3 text-sm mt-1 outline-none" placeholder="google/gemini-2.0-flash-exp:free">
+                    <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Model ID</label>
+                    <input type="text" id="modelInput" class="w-full bg-[#0f172a] border border-slate-800 rounded-xl p-3 text-sm mt-2 outline-none" placeholder="google/gemini-2.0-flash-exp:free">
                 </div>
             </div>
             <div class="mt-8 flex justify-end gap-4">
-                <button onclick="toggleModal('settingsModal')" class="text-sm text-slate-500">Cancel</button>
-                <button onclick="saveSettings()" class="bg-blue-600 px-6 py-2 rounded-xl text-sm font-bold">Save Changes</button>
+                <button onclick="toggleModal('settingsModal')" class="text-sm text-slate-500 font-bold">CANCEL</button>
+                <button onclick="saveSettings()" class="bg-blue-600 px-8 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20">SAVE</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- FIREBASE CONFIG ---
+        // --- FIREBASE SETUP ---
         const firebaseConfig = {
             apiKey: "AIzaSyBqG8rYJZ4xVwR5TrOnzdmlD-eqH8J7TTU",
             authDomain: "peroai-c9000.firebaseapp.com",
@@ -103,71 +160,201 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        let currentUser = null;
+        let isAdmin = false;
         let state = {
             key: localStorage.getItem('pero_key') || '',
-            model: localStorage.getItem('pero_model') || 'google/gemini-2.0-flash-exp:free'
+            model: localStorage.getItem('pero_model') || 'google/gemini-2.0-flash-exp:free',
+            currentChatId: null
         };
 
-        // --- AUTH LOGIC ---
+        // --- AUTH & ADMIN LOGIC ---
+        function toggleAuthMode() {
+            document.getElementById('userLoginSection').classList.toggle('hidden');
+            document.getElementById('adminLoginSection').classList.toggle('hidden');
+            document.getElementById('authError').classList.add('hidden');
+        }
+
         auth.onAuthStateChanged(user => {
             if (user) {
+                currentUser = user;
                 document.getElementById('authOverlay').classList.add('auth-hidden');
-                document.getElementById('userDisplay').innerText = user.displayName;
-                document.getElementById('userPhoto').innerHTML = `<img src="${user.photoURL}">`;
-                document.getElementById('modelLabel').innerText = `Model: ${state.model}`;
+                document.getElementById('userDisplay').innerText = user.displayName || user.email.split('@')[0];
+                document.getElementById('modelLabel').innerText = `Current Model: ${state.model}`;
+                
+                if (user.photoURL) {
+                    document.getElementById('userPhoto').innerHTML = `<img src="${user.photoURL}" class="w-full h-full object-cover">`;
+                } else {
+                    document.getElementById('userPhoto').innerText = "A"; // Admin avatar fallback
+                }
+
+                // Check Admin (Mock check - if email exists and they logged in with password)
+                // In a real app, this would check Custom Claims or a specific Firestore Document
+                if (user.providerData[0]?.providerId === 'password') {
+                    isAdmin = true;
+                    document.getElementById('roleBadge').innerText = "System Admin";
+                    document.getElementById('roleBadge').classList.replace('text-green-400', 'text-red-400');
+                    document.getElementById('adminBtn').classList.remove('hidden');
+                }
+                
+                loadChats();
+                logSystemEvent('user_login', `User ${user.email} logged in.`);
             } else {
                 document.getElementById('authOverlay').classList.remove('auth-hidden');
             }
         });
 
         function signInWithGoogle() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-        function logout() { auth.signOut(); location.reload(); }
-        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+        
+        async function adminLogin() {
+            const email = document.getElementById('adminEmail').value;
+            const pass = document.getElementById('adminPass').value;
+            try {
+                // Tries to login, or creates admin account if it's the first time
+                await auth.signInWithEmailAndPassword(email, pass).catch(async (e) => {
+                    if(e.code === 'auth/user-not-found') await auth.createUserWithEmailAndPassword(email, pass);
+                    else throw e;
+                });
+            } catch (error) {
+                const errBox = document.getElementById('authError');
+                errBox.innerText = error.message;
+                errBox.classList.remove('hidden');
+            }
+        }
 
+        function logout() { auth.signOut(); location.reload(); }
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); if(id === 'adminModal' && isAdmin) fetchAdminLogs(); }
+
+        // --- NEW/DELETE CHAT LOGIC ---
+        function createNewChat() {
+            state.currentChatId = null;
+            document.getElementById('chatContainer').innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full opacity-20 mt-20">
+                    <i class="fas fa-project-diagram text-6xl mb-4"></i>
+                    <h2 class="text-xl font-bold">New Project Started</h2>
+                </div>
+            `;
+        }
+
+        async function deleteChat(chatId, event) {
+            event.stopPropagation(); // Prevents loading the chat when clicking delete
+            if (!confirm("Delete this chat permanently?")) return;
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('chats').doc(chatId.toString()).delete();
+                if (state.currentChatId === chatId) createNewChat();
+                loadChats();
+                logSystemEvent('chat_deleted', `Deleted chat ID: ${chatId}`);
+            } catch (e) {
+                logSystemEvent('error', `Failed to delete chat: ${e.message}`);
+            }
+        }
+
+        // --- SYSTEM LOGS (Admin Panel) ---
+        async function logSystemEvent(type, message) {
+            try {
+                await db.collection('system_logs').add({
+                    type: type,
+                    message: message,
+                    timestamp: Date.now(),
+                    user: currentUser ? currentUser.uid : 'system'
+                });
+            } catch (e) { console.error("Logging failed", e); }
+        }
+
+        async function fetchAdminLogs() {
+            const logContainer = document.getElementById('adminLogs');
+            logContainer.innerHTML = 'Loading logs...';
+            try {
+                const snapshot = await db.collection('system_logs').orderBy('timestamp', 'desc').limit(50).get();
+                let errorCount = 0;
+                let html = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if(data.type === 'error') errorCount++;
+                    const color = data.type === 'error' ? 'text-red-400' : (data.type === 'user_login' ? 'text-green-400' : 'text-slate-400');
+                    const date = new Date(data.timestamp).toLocaleTimeString();
+                    html += `<div class="border-b border-slate-800 pb-1"><span class="text-slate-600">[${date}]</span> <span class="${color} uppercase">[${data.type}]</span> ${data.message}</div>`;
+                });
+                logContainer.innerHTML = html || 'No logs found.';
+                document.getElementById('statLogs').innerText = snapshot.size;
+                document.getElementById('statErrors').innerText = errorCount;
+            } catch (e) { logContainer.innerHTML = 'Need database rules update for system_logs.'; }
+        }
+
+        // --- CORE AI & DOWNLOAD LOGIC ---
         function saveSettings() {
             state.key = document.getElementById('apiKeyInput').value || state.key;
             state.model = document.getElementById('modelInput').value || state.model;
             localStorage.setItem('pero_key', state.key);
             localStorage.setItem('pero_model', state.model);
-            document.getElementById('modelLabel').innerText = `Model: ${state.model}`;
+            document.getElementById('modelLabel').innerText = `Current Model: ${state.model}`;
             toggleModal('settingsModal');
         }
 
-        // --- VOICE SYSTEM ---
-        function startVoice() {
-            const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!Speech) return alert("Voice not supported in this browser.");
-            const rec = new Speech();
-            rec.onstart = () => document.getElementById('micBtn').classList.add('text-red-500', 'animate-pulse');
-            rec.onresult = (e) => document.getElementById('userInput').value = e.results[0][0].transcript;
-            rec.onend = () => document.getElementById('micBtn').classList.remove('text-red-500', 'animate-pulse');
-            rec.start();
+        async function saveChatToCloud(u, a) {
+            if (!currentUser) return;
+            const ref = db.collection('users').doc(currentUser.uid).collection('chats').doc(state.currentChatId.toString());
+            const snap = await ref.get();
+            if (snap.exists) {
+                await ref.update({ messages: firebase.firestore.FieldValue.arrayUnion({u, a}) });
+            } else {
+                await ref.set({ id: state.currentChatId, title: u.substring(0, 25) + "...", timestamp: Date.now(), messages: [{u, a}] });
+            }
+            loadChats();
         }
 
-        // --- CORE AI & IMAGE GEN ---
+        async function loadChats() {
+            if (!currentUser) return;
+            const snap = await db.collection('users').doc(currentUser.uid).collection('chats').orderBy('timestamp', 'desc').get();
+            const list = document.getElementById('chatHistory');
+            list.innerHTML = '';
+            snap.forEach(doc => {
+                const chat = doc.data();
+                const div = document.createElement('div');
+                div.className = "chat-item group flex items-center justify-between p-3 rounded-xl hover:bg-slate-800 cursor-pointer text-xs text-slate-400 transition";
+                div.innerHTML = `
+                    <div class="truncate flex-1" onclick="renderChat(${chat.id})"><i class="fas fa-code mr-2"></i> ${chat.title}</div>
+                    <button class="delete-btn hidden text-slate-600 hover:text-red-400 px-2" onclick="deleteChat(${chat.id}, event)"><i class="fas fa-trash"></i></button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function renderChat(chatId) {
+            state.currentChatId = chatId;
+            const container = document.getElementById('chatContainer');
+            container.innerHTML = '';
+            const doc = await db.collection('users').doc(currentUser.uid).collection('chats').doc(chatId.toString()).get();
+            if(doc.exists) {
+                doc.data().messages.forEach(m => { appendMsg('user', m.u); appendMsg('assistant', m.a, m.a.includes('<img')); });
+            }
+        }
+
         async function sendMessage(forceImage = false) {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
             if (!text || !state.key) return;
 
+            if (!state.currentChatId) state.currentChatId = Date.now();
+            
+            // Clear empty state if present
+            if(document.querySelector('.fa-project-diagram')) document.getElementById('chatContainer').innerHTML = '';
+
             appendMsg('user', text);
             input.value = '';
-            document.getElementById('statusLabel').innerText = "AI THINKING...";
+            document.getElementById('statusLabel').innerText = "GENERATING CODE...";
 
-            let systemPrompt = "You are PeroAI, a helpful assistant.";
+            let systemPrompt = "You are PeroAI. Be concise.";
             if (document.getElementById('mcToggle').checked) {
-                systemPrompt = "You are a Minecraft Plugin Developer. Provide Java code for Spigot API.";
+                systemPrompt = "You are a Minecraft Java Developer for Spigot. Output full classes in Java code blocks.";
             }
 
             const payload = {
                 model: state.model,
                 messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }]
             };
-
-            // Enable Image Output if requested
-            if (forceImage || text.toLowerCase().includes("generate image")) {
-                payload.modalities = ["text", "image"];
-            }
+            if (forceImage || text.toLowerCase().includes("generate image")) payload.modalities = ["text", "image"];
 
             try {
                 const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -176,46 +363,84 @@
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
+                
+                if(data.error) throw new Error(data.error.message);
+
                 const msg = data.choices[0].message;
+                let saveMsg = msg.content || "";
 
                 if (msg.content) appendMsg('assistant', msg.content);
-                
-                // Show Image if returned
                 if (msg.images) {
-                    msg.images.forEach(img => {
-                        const imgHtml = `<img src="${img.url}" class="gen-image">`;
+                    msg.images.forEach(i => {
+                        const imgHtml = `<img src="${i.url}" class="gen-image">`;
                         appendMsg('assistant', imgHtml, true);
+                        saveMsg += imgHtml;
                     });
                 }
 
-                document.getElementById('statusLabel').innerText = "SYSTEM ONLINE";
-            } catch (e) {
-                alert("Error. Please check your API Key in Settings.");
+                saveChatToCloud(text, saveMsg);
+                document.getElementById('statusLabel').innerText = "READY TO COMPILE";
+                logSystemEvent('api_success', 'Message generated successfully.');
+            } catch (e) { 
                 document.getElementById('statusLabel').innerText = "ERROR";
+                logSystemEvent('error', `API Request Failed: ${e.message}`);
+                alert("API Error: Check Admin Logs or API Key.");
             }
-        }
-
-        function triggerImageGen() {
-            const input = document.getElementById('userInput');
-            if (!input.value) input.value = "A futuristic robot city";
-            sendMessage(true);
         }
 
         function appendMsg(role, content, isHtml = false) {
             const container = document.getElementById('chatContainer');
             const div = document.createElement('div');
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} fade-in`;
+            div.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`;
             
-            let displayContent = content;
+            let html = content;
             if (!isHtml && role === 'assistant') {
-                // Simple code block formatting
-                displayContent = content.replace(/```([\s\S]*?)```/g, '<pre class="bg-black/40 p-3 rounded-lg my-2 font-mono text-xs overflow-x-auto">$1</pre>');
+                html = content.replace(/```java([\s\S]*?)```/g, (match, code) => {
+                    const cleanCode = code.trim();
+                    return `<div class="bg-[#0f172a] p-4 rounded-xl my-2 font-mono text-[11px] border border-slate-700 relative overflow-x-auto">
+                        <pre><code>${cleanCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
+                        <div onclick="downloadCode(\`${encodeURIComponent(cleanCode)}\`, 'Plugin.java')" class="download-btn">
+                            <i class="fas fa-download"></i> Download .java
+                        </div>
+                    </div>`;
+                });
+                html = html.replace(/```([\s\S]*?)```/g, '<pre class="bg-[#0f172a] p-3 rounded-lg my-2 font-mono text-xs overflow-x-auto border border-slate-800">$1</pre>');
             }
 
-            div.innerHTML = `<div class="max-w-[85%] p-4 rounded-2xl text-sm ${role === 'user' ? 'bg-blue-600 shadow-blue-500/20' : 'bg-[#1e293b] border border-slate-700 shadow-black/20'} shadow-lg">${displayContent}</div>`;
+            div.innerHTML = `<div class="max-w-[85%] p-4 rounded-2xl text-sm ${role === 'user' ? 'bg-blue-600 shadow-blue-500/10' : 'bg-[#1e293b] border border-slate-800 shadow-black/10'} shadow-xl">${html}</div>`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
+
+        function downloadCode(encodedCode, filename) {
+            const code = decodeURIComponent(encodedCode);
+            const blob = new Blob([code], { type: 'text/java' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            logSystemEvent('code_download', 'User downloaded a Java plugin.');
+        }
+
+        function startVoice() {
+            const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!Speech) return;
+            const rec = new Speech();
+            rec.onstart = () => document.getElementById('micBtn').className = "p-3 text-red-500 animate-pulse";
+            rec.onresult = (e) => document.getElementById('userInput').value = e.results[0][0].transcript;
+            rec.onend = () => document.getElementById('micBtn').className = "p-3 text-slate-400 hover:text-red-400";
+            rec.start();
+        }
+
+        function triggerImageGen() {
+            const input = document.getElementById('userInput');
+            if (!input.value) input.value = "Create a 4k render of a Minecraft landscape";
+            sendMessage(true);
+        }
     </script>
 </body>
-                        </html>
+                    </html>
